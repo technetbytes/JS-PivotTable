@@ -1,0 +1,371 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo</title>
+    <style>
+        #div1 {
+            margin:10px;
+            font-size:1.25em;
+        }
+
+        table {
+            border-collapse:collapse;
+            border:1px solid #7f7f7f;
+        }
+
+        td {
+            border:1px solid #7f7f7f;
+            width:50px;height:50px;
+            text-align:center;
+        }
+    </style>
+</head>
+<body >
+	<div id="divBtn"><button onclick="loadData()">Draw Pivot Table</button><div>
+    <div id="div1"></div>
+    <script>
+		var quotaNumber = 130;
+		var cols = []
+		var rows = [] //
+		var column_data = [["K"],["male","female"],["10-12","13-15","16-18"],["D"]];
+		var row_data = [["K",],["male","female"],["10-12","13-15","16-18"],["D"]];
+        var totalRows = 5;
+        var cellsInRow = 5;
+        var min = 1;
+        var max = 10;
+		var yesNo = false;
+		
+		function loadData(){
+			if(yesNo){
+				cols = ["city","gender","age","Sec"];
+				rows = [];
+				yesNo = false;
+			}
+			else{
+				rows = ["city","gender","age","Sec"];
+				cols = [];
+				yesNo = true;
+			}
+			drawPivotTable(getTotalCells(rows,cols,row_data,column_data));
+		}
+	
+			function getTotalCells(rows,cols,row_data,column_data){				
+				var data_size = [];
+				var cell_repetition = []
+				if(rows.length > 0 && cols.length > 0){
+					console.log("Both Rows and Cols")
+				}
+				else{
+					if(rows.length > 0){
+							console.log("We are in Rows")
+							for(let i in rows){
+								{
+									data_size[i] = row_data[i].length
+								}
+							}
+							
+							for (var x = 0; x < row_data.length; x++) {
+								var sum = 1;
+								for (var i = 1+x; i < row_data.length; i++) {
+									sum = sum * row_data[i].length;
+								}								
+								cell_repetition[x] = sum;
+							}
+							
+							matrix = [];
+							let remember_row = [];
+							let remember_rowdata_index = [];
+							for(let r=0; r < multiply(data_size); r++){
+								let each_row = [];
+								if(r==0){
+									//first row
+									for(let c=0; c < rows.length; c++){
+										each_row[c] = [1,0];
+										remember_row[c] = 1;
+										remember_rowdata_index[c] = 0
+									}
+									matrix.push(each_row)
+								}
+								else{
+									//rest of the rows
+									for(let c=0; c < rows.length; c++){
+										//last column
+										if(c == rows.length-1){											
+											if(remember_row[c] == cell_repetition[c]){
+												remember_row[c] = 1												
+												if(remember_rowdata_index[c] != row_data[c].length-1){
+													remember_rowdata_index[c] = remember_rowdata_index[c] + 1;
+												}
+												else{
+													remember_rowdata_index[c] = 0
+												}												
+											}else{
+												//no need for this else
+												//each_row[c] = 1;
+												//remember_row[c] = remember_row[c] + 1																						
+											}
+											each_row[c] = [1,remember_rowdata_index[c]];
+										}
+										else{
+											if(remember_row[c] == cell_repetition[c]){								
+												if(remember_rowdata_index[c] != row_data[c].length-1){
+													remember_rowdata_index[c] = remember_rowdata_index[c] + 1;
+												}
+												else{
+													remember_rowdata_index[c] = 0
+												}
+												each_row[c] = [1,remember_rowdata_index[c]];
+												remember_row[c] = 1
+											}
+											else{																								
+												remember_row[c] = remember_row[c] + 1
+												each_row[c] = 0;
+											}
+										}
+									}
+									matrix.push(each_row)
+								}
+							}
+							
+							size = {
+								row_size: multiply(data_size), //add two extra rows for (Header and bottom Total). 
+								col_size: rows.length + 1, //add one extra cols for (Total)
+								data_patterns : data_size,
+								pattern_name : "IsRow",
+								cell_repetition : cell_repetition,
+								matrix : matrix
+							};	
+					}
+					else if(cols.length > 0){
+							//console.log("We are in Cols")
+							row_size = 1;
+							col_size = [];						
+							for(let i in cols){
+								data_size[i] = column_data[i].length
+							}
+							
+							for(let i in column_data){
+								let x = i;								
+								if(i==0){
+									cell_repetition[i] = 1; //it's always 1
+								}
+								else if(i-1 == 0){
+									cell_repetition[i] = column_data[i-1].length
+								}
+								else{
+									cell_repetition[i] = (cell_repetition[x-1] * column_data[i-1].length)//column_data[i-1].length * i + 1
+								}
+							}
+							
+							size = {
+								row_size: row_size + data_size.length, //using length we able to find total top cols. 
+								col_size: multiply(data_size) + 2, //add two extra cols for (Title and total)
+								data_patterns : data_size,
+								pattern_name : "IsColumn",
+								cell_repetition : cell_repetition
+							};
+						}
+				}
+				structure_info = size;
+				console.log("-->",structure_info)
+				return structure_info;
+			}
+			
+			function multiply(array) {
+				var sum = 1;
+				for (var i = 0; i < array.length; i++) {
+					sum = sum * array[i];
+				}
+				return sum;
+			}
+			
+			function getSpan(startIndex, array) {
+				var sum = 1;
+				for (var i = startIndex + 1; i < array.length; i++) {
+					sum = sum * array[i];
+				}
+				return sum;
+			}
+			
+			function isNumber(evt) {
+				evt = (evt) ? evt : window.event;
+				var charCode = (evt.which) ? evt.which : evt.keyCode;
+				if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+					console.log("false")
+					return false;
+				}
+				return true;
+			}
+			
+			const breakIntoParts = (num, parts) => [...Array(parts)].map((_,i) => 0| num/parts+(i < num%parts));
+			
+			function drawPivotTable(structure_info){
+				// get the reference for the body
+                var div1 = document.getElementById('div1');
+				
+				//creates a <table> element
+                var tbl = document.createElement("table");
+				
+				//check pattern name IsColumn
+				if(structure_info.pattern_name === "IsColumn"){
+					let data = breakIntoParts(quotaNumber, structure_info.col_size);
+					// creating rows
+					for (var r = 0; r < structure_info.row_size; r++) {
+						var row = document.createElement("tr");
+						// create cells in row
+						for (var c = 0; c < structure_info.col_size; c++) {
+							//console.log("--->",c)	
+							var cell = document.createElement("td");							
+							if(c == 0){
+								if(r == structure_info.row_size - 1){
+									var cellText = document.createTextNode("Total");
+									cell.appendChild(cellText);
+								}else{
+									var cellText = document.createTextNode(cols[r]);
+									cell.appendChild(cellText);
+								}								
+								
+								row.appendChild(cell);
+							}
+							else if(r == 0 && c == structure_info.col_size - 1){
+								var cellText = document.createTextNode("Total");
+								cell.appendChild(cellText);
+								row.appendChild(cell);
+							}
+							else if(r == structure_info.row_size-1){
+									if(c != structure_info.col_size-1){
+										let input = document.createElement("input");									
+										input.setAttribute("id",i);
+										input.setAttribute("type", "text");
+										input.setAttribute("size", "1");
+										input.setAttribute("maxlength","3");
+										input.setAttribute("value",data[c]);
+										input.setAttribute("onkeypress","return isNumber(event)");							
+										cell.append(input);
+										row.appendChild(cell);
+									}
+									else{
+										var cellText = document.createTextNode(quotaNumber);
+										cell.appendChild(cellText);										
+										row.appendChild(cell);
+									}
+							}
+							else
+							{
+								if(r != structure_info.row_size - 1){								
+									let span = getSpan(r,structure_info.data_patterns)
+									console.log(structure_info.cell_repetition)
+									toRepeat = structure_info.cell_repetition[r];
+									for(var repeat = 0; repeat < toRepeat; repeat++){
+										column_data[r].forEach((element, index) => { 
+												var cell2 = document.createElement("td");
+												var cellText = document.createTextNode(element);
+												cell2.appendChild(cellText);
+												cell2.colSpan = span;
+												row.appendChild(cell2);
+										});
+									}
+								}
+								c = structure_info.col_size;
+								if(r == 0 && c == structure_info.col_size){
+									var cellText = document.createTextNode("Total");
+									cell.appendChild(cellText)
+									cell.rowSpan=cols.length;
+									row.appendChild(cell);
+								}
+							}
+						}
+						tbl.appendChild(row); // add the row to the end of the table body
+					}				
+				}
+				else if(structure_info.pattern_name === "IsRow"){					
+					let data = breakIntoParts(quotaNumber, structure_info.matrix.length);
+					console.log("---> data",data);
+					// creating rows
+					for (var r = 0; r < structure_info.row_size; r++) {
+						var row = document.createElement("tr");
+						let span = getSpan(r,structure_info.data_patterns)
+						// create cells in row
+						for (var c = 0; c < structure_info.col_size; c++) {						
+							var cell = document.createElement("td");
+							if ( r == 0){
+								if(r == 0 && c == structure_info.col_size - 1){
+									var cellText = document.createTextNode("Total");
+									cell.appendChild(cellText);
+									cell.rowSpan = 1;//structure_info.row_size
+									row.appendChild(cell);
+								}else if(r == 0 && c != structure_info.col_size - 1){
+									var cellText = document.createTextNode(rows[c]);
+									cell.appendChild(cellText);
+									row.appendChild(cell);
+								}
+							}else if(r == structure_info.row_size - 1 && c == 0){
+									var cellText = document.createTextNode("Total");
+									cell.appendChild(cellText);
+									cell.rowSpan = 2 ;
+									row.appendChild(cell);
+							}else{
+								for(var i=0; i < structure_info.matrix.length; i++){
+									var row2 = document.createElement("tr");
+										//running loop one more time because we need add textboxes in the last column
+										for(var x=0; x<structure_info.matrix[i].length + 1 ;x++){										
+										if(x == structure_info.matrix[i].length){
+											var cell2 = document.createElement("td");											
+											let input = document.createElement("input");
+											input.setAttribute("id",i);
+											input.setAttribute("type", "text");
+											input.setAttribute("size", "1");
+											input.setAttribute("maxlength","3");
+											input.setAttribute("value",data[i]);
+											input.setAttribute("onkeypress","return isNumber(event)");
+											cell2.append(input);
+											
+											//var cellText = document.createTextNode(":");
+											//cell2.appendChild(cellText);
+											cell2.rowSpan = 1
+											row2.appendChild(cell2);											
+											tbl.appendChild(row2);
+										}else{
+										if(structure_info.matrix[i][x][0] == 1){										
+												var cell2 = document.createElement("td");
+												//console.log(">>",row_data[x][0]," : ",row_data[x][0])
+												var cellText = document.createTextNode(row_data[x][structure_info.matrix[i][x][1]]);
+												cell2.appendChild(cellText);
+												cell2.rowSpan = structure_info.cell_repetition[x];
+												row2.appendChild(cell2);											
+												tbl.appendChild(row2);											
+											}
+										}
+									}
+								}
+								c = structure_info.col_size;
+								r = structure_info.row_size;								
+								if(r == structure_info.row_size && c == structure_info.col_size){
+									var row2 = document.createElement("tr");
+									var cellText = document.createTextNode("Total");
+									var cell2 = document.createElement("td");
+									cell2.appendChild(cellText)
+									cell2.colSpan=structure_info.col_size-1;
+									row2.appendChild(cell2);
+									
+									var cell2 = document.createElement("td");
+									var cellText = document.createTextNode(quotaNumber);
+									cell2.appendChild(cellText)
+									cell2.colSpan=1;
+									row2.appendChild(cell2);
+									tbl.appendChild(row2);
+								}
+							}
+						}
+						tbl.appendChild(row); // add the row to the end of the table body
+					}
+				}
+				div1.innerHTML = "";				
+				div1.appendChild(tbl); // appends <table> into <div1>				
+			}
+						
+        //window.onload=drawPivotTable(getTotalCells(rows,cols,row_data,column_data)); 
+    </script>
+</body>
+</html>
